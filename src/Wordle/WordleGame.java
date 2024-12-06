@@ -1,18 +1,34 @@
 package Wordle;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 public class WordleGame {
+    private final char[][] grid;
+    private Scanner scanner;
+    Scanner keyboard = new Scanner(System.in);
     protected final byte MAX_ATTEMPTS = 6;
-    private String secretWord;
+    protected String secretWord;
     private boolean isGameOver;
     private byte currentAttempt;
-    private Set<String> attempts;
+    private int attempts;
     private Player player;
     private int gameScore;
 
-    public WordleGame(String secretWord) {
+    public WordleGame(Player player, String secretWord) {
+        setPlayer(player);
         setSecretWord(secretWord);
+        setCurrentAttempt((byte) 0);
+        setAttempts(0);
+        setGameScore(0);
+        setIsGameOver(false);
+        this.grid = new char[MAX_ATTEMPTS][secretWord.length()];
+        for (int i = 0; i < MAX_ATTEMPTS; i++) {
+            for (int j = 0; j < secretWord.length(); j++) {
+                grid[i][j] = ' ';
+            }
+        }
     }
 
     public byte getMAX_ATTEMPTS() {
@@ -23,11 +39,11 @@ public class WordleGame {
         return secretWord;
     }
 
-    public boolean isGameOver() {
+    public boolean getIsGameOver() {
         return isGameOver;
     }
 
-    public void setGameOver(boolean gameOver) {
+    public void setIsGameOver(boolean gameOver) {
         isGameOver = gameOver;
     }
 
@@ -39,11 +55,11 @@ public class WordleGame {
         this.currentAttempt = currentAttempt;
     }
 
-    public Set<String> getAttempts() {
+    public int getAttempts() {
         return attempts;
     }
 
-    public void setAttempts(Set<String> attempts) {
+    public void setAttempts(int attempts) {
         this.attempts = attempts;
     }
 
@@ -65,5 +81,79 @@ public class WordleGame {
 
     public void setSecretWord(String secretWord) {
         this.secretWord = secretWord;
+    }
+
+    public void startGame() {
+        setIsGameOver(false);
+        setCurrentAttempt((byte) 0);
+        setGameScore(0);
+        printGrid();
+    }
+
+    public boolean submitGuess(String guess) {
+        if (isGameOver) {
+            System.out.println("Game over");
+            return false;
+        }
+
+        if (guess.length() != 5 || guess.contains(" ")) {
+            System.out.println("Invalid guess. Write a 5 letter word without spaces.");
+            return false;
+        }
+
+        if (guess.equals(secretWord)) {
+            System.out.println("Congratulations! You've guessed the word correctly.");
+            isGameOver = true;
+
+        } else if (attempts >= MAX_ATTEMPTS - 1) {
+            System.out.println("Out of attempts! The secret word was: " + secretWord);
+            isGameOver = true;
+        }
+      return true;
+    }
+
+//    public List<CharacterFeedback> getFeedback(String guess) {
+//        List<CharacterFeedback> feedback = new ArrayList<CharacterFeedback>();
+//        for (int i = 0; i < 5; i++) {
+//            char guessedChar = guess.charAt(i);
+//            boolean isCorrectPosition = guessedChar == secretWord.charAt(i);
+//            boolean isPresentInWord = secretWord.contains(Character.toString(guessedChar));
+//            feedback.add(new CharacterFeedback(guessedChar, isCorrectPosition, isPresentInWord));
+//        }
+//      return feedback;
+//    }
+
+    public void endSession() {
+        setIsGameOver(true);
+        System.out.println("Game session ended");
+    }
+
+    public void printGrid() {
+        // 6 rows for guesses, 5 columns for letters
+        //for (char[] row : grid) {
+
+        System.out.println("┌───┬───┬───┬───┬───┐");
+        for (int i = 0; i < grid.length; i++) {
+            System.out.print("│");
+            for (int j = 0; j < grid[i].length; j++) {
+                System.out.print(" " + grid[i][j] + " │");
+            }
+            System.out.println();
+            if (i < grid.length - 1) {
+                System.out.println("├───┼───┼───┼───┼───┤");
+            }
+        }
+        System.out.println("└───┴───┴───┴───┴───┘");
+
+    }
+
+    public void fillGrid(String guess) {
+        if (submitGuess(guess)) {
+            grid[attempts] = guess.toCharArray(); // Add the guess to the current row
+            attempts++; // Increment attempts
+            System.out.print("\033[H\033[2J"); // Clears the console
+            System.out.flush();
+            printGrid();
+        }
     }
 }
