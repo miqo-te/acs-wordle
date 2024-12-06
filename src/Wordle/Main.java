@@ -36,7 +36,20 @@ public class Main {
             keyboard.nextLine(); // Consume newline
 
             if (choice == 1) {
-                startGame(initialWords, keyboard);
+                String guess = " ";
+//                startGame(initialWords, keyboard);
+                Player player1 = new Player(0, "MIKE HUNT");
+                WordList wordList = new WordList(initialWords);
+                WordleGame gameSession = new WordleGame(player1 ,wordList.getRandomWord());
+                Attempt attempt = new Attempt("", gameSession.secretWord);
+                gameSession.startGame();
+                while (!gameSession.getIsGameOver()) {
+                    guess = keyboard.nextLine();
+                    if (gameSession.submitGuess(guess)) {
+                        attempt.generateFeedback(guess.toUpperCase(), gameSession.secretWord);
+                        gameSession.fillGrid(guess.toUpperCase());
+                    }
+                }
             } else if (choice == 2) {
                 System.out.println("Hello World");
             } else if (choice == 3) {
@@ -48,65 +61,70 @@ public class Main {
         }
     }
 
-    public static void startGame(List<String> initialWords, Scanner keyboard) {
-        WordList words = new WordList(initialWords);
-        WordleGame gameSession = new WordleGame(words.getRandomWord());
-
-        String secretWord = gameSession.getSecretWord();
-        char[][] grid = new char[6][5]; // 6 rows for guesses, 5 columns for letters
-        for (char[] row : grid) {
-            Arrays.fill(row, ' '); // Fill grid with spaces initially
-        }
-
-        System.out.println("Selected Category: GENERIC - Secret word (for testing): " + secretWord);
-        printGrid(grid);
-
-        int attempts = 0;
-        boolean guessedCorrectly = false;
-
-        while (attempts < 6 && !guessedCorrectly) {
-            System.out.println("ENTER YOUR 5-LETTER GUESS:");
-            String currentGuess = keyboard.nextLine().toUpperCase();
-
-            if (currentGuess.length() == 5 && initialWords.contains(currentGuess)) {
-                // Update the grid with the current guess
-                grid[attempts] = currentGuess.toCharArray();
-                attempts++;
-
-                // Check if the guess matches the secret word
-                if (currentGuess.equals(secretWord)) {
-                    guessedCorrectly = true;
-                }
-
-                // Clear the console and reprint the grid
-                System.out.print("\033[H\033[2J");
-                System.out.flush();
-                printGrid(grid);
-            } else {
-                System.out.println("INVALID GUESS, TRY AGAIN.");
-            }
-        }
-
-        if (guessedCorrectly) {
-            System.out.println("Congratulations! You guessed the word: " + secretWord);
-        } else {
-            System.out.println("Game over! The secret word was: " + secretWord);
-        }
-    }
-
-    // Function to print the grid
-    public static void printGrid(char[][] grid) {
-        System.out.println("┌───┬───┬───┬───┬───┐");
-        for (int i = 0; i < grid.length; i++) {
-            System.out.print("│");
-            for (int j = 0; j < grid[i].length; j++) {
-                System.out.print(" " + grid[i][j] + " │");
-            }
-            System.out.println();
-            if (i < grid.length - 1) {
-                System.out.println("├───┼───┼───┼───┼───┤");
-            }
-        }
-        System.out.println("└───┴───┴───┴───┴───┘");
-    }
+//    public static void startGame(List<String> initialWords, Scanner keyboard) {
+//        WordList words = new WordList(initialWords);
+//        Player player1 = new Player(0, "QWE");
+//        WordleGame gameSession = new WordleGame(player1, words.getRandomWord());
+//
+//        String secretWord = gameSession.getSecretWord();
+//        char[][] grid = new char[6][5]; // 6 rows for guesses, 5 columns for letters
+//        for (char[] row : grid) {
+//            Arrays.fill(row, ' '); // Fill grid with spaces initially
+//        }
+//
+//        System.out.println("Selected Category: GENERIC - Secret word (for testing): " + secretWord);
+//        printGrid(grid);
+//
+//        int attempts = 0;
+//        boolean guessedCorrectly = false;
+//
+//        while (attempts < 6 && !guessedCorrectly) {
+//            System.out.println("ENTER YOUR 5-LETTER GUESS:");
+//            String currentGuess = keyboard.nextLine().toUpperCase();
+//
+//            if (currentGuess.length() == 5 && initialWords.contains(currentGuess)) {
+//                // Update the grid with the current guess
+//                grid[attempts] = currentGuess.toCharArray();
+//                attempts++;
+//
+//                // Check if the guess matches the secret word
+//                if (currentGuess.equals(secretWord)) {
+//                    guessedCorrectly = true;
+//                }
+//
+//                // Clear the console and reprint the grid
+//                System.out.print("\033[H\033[2J");
+//                System.out.flush();
+//                printGrid(grid);
+//            } else {
+//                System.out.println("INVALID GUESS, TRY AGAIN.");
+//            }
+//        }
+//
+//        if (guessedCorrectly) {
+//            System.out.println("Congratulations! You guessed the word: " + secretWord);
+//        } else {
+//            System.out.println("Game over! The secret word was: " + secretWord);
+//        }
+//    }
+//
+//    // Function to print the grid
+//    public static void printGrid() {
+//        char[][] grid = new char[6][5]; // 6 rows for guesses, 5 columns for letters
+//        for (char[] row : grid) {
+//            Arrays.fill(row, ' '); // Fill grid with spaces initially
+//        }
+//        System.out.println("┌───┬───┬───┬───┬───┐");
+//        for (int i = 0; i < grid.length; i++) {
+//            System.out.print("│");
+//            for (int j = 0; j < grid[i].length; j++) {
+//                System.out.print(" " + grid[i][j] + " │");
+//            }
+//            System.out.println();
+//            if (i < grid.length - 1) {
+//                System.out.println("├───┼───┼───┼───┼───┤");
+//            }
+//        }
+//        System.out.println("└───┴───┴───┴───┴───┘");
+//    }
 }
