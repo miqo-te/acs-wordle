@@ -1,15 +1,21 @@
 package Wordle;
 
 public class CharacterFeedback {
-    private char character;
+    private String character;
     private boolean isCorrectPosition;
     private boolean isPresentInWord;
 
-    public void setCharacter(char character) {
-        this.character = character;
+    public CharacterFeedback(char character, boolean isCorrectPosition, boolean isPresentInWord) {
+        setCharacter(character);
+        setIsCorrectPosition(isCorrectPosition);
+        setIsPresentInWord(isPresentInWord);
     }
 
-    public char getCharacter() {
+    public void setCharacter(char character) {
+        this.character = String.valueOf(character);
+    }
+
+    public String getCharacter() {
         return character;
     }
 
@@ -27,5 +33,13 @@ public class CharacterFeedback {
 
     public boolean getPresentInWord() {
         return isPresentInWord;
+    }
+
+    public void color() {
+        if (isCorrectPosition) {
+            character = "\033[32m"+character+"\033[0m";
+        } else if (isPresentInWord) {
+            character = "\033[93m"+character+"\033[0m";
+        }
     }
 }
