@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public class WordleGame {
-    private final char[][] grid;
+    private final String[][] grid;
     private Scanner scanner;
     Scanner keyboard = new Scanner(System.in);
     protected final byte MAX_ATTEMPTS = 6;
@@ -23,10 +23,10 @@ public class WordleGame {
         setAttempts(0);
         setGameScore(0);
         setIsGameOver(false);
-        this.grid = new char[MAX_ATTEMPTS][secretWord.length()];
+        this.grid = new String[MAX_ATTEMPTS][secretWord.length()];
         for (int i = 0; i < MAX_ATTEMPTS; i++) {
             for (int j = 0; j < secretWord.length(); j++) {
-                grid[i][j] = ' ';
+                grid[i][j] = " "; // Initialize as empty strings
             }
         }
     }
@@ -129,9 +129,6 @@ public class WordleGame {
     }
 
     public void printGrid() {
-        // 6 rows for guesses, 5 columns for letters
-        //for (char[] row : grid) {
-
         System.out.println("┌───┬───┬───┬───┬───┐");
         for (int i = 0; i < grid.length; i++) {
             System.out.print("│");
@@ -144,16 +141,37 @@ public class WordleGame {
             }
         }
         System.out.println("└───┴───┴───┴───┴───┘");
-
     }
+
 
     public void fillGrid(String guess) {
         if (submitGuess(guess)) {
-            grid[attempts] = guess.toCharArray(); // Add the guess to the current row
+            Attempt attempt = new Attempt(guess, secretWord);
+            String feedback = attempt.generateFeedback(guess, secretWord);
+
+            // Populate the grid with color-coded feedback
+            for (int i = 0; i < 5; i++) {
+                char letter = guess.charAt(i);
+                boolean isCorrectPosition = letter == secretWord.charAt(i);
+                boolean isPresentInWord = secretWord.contains(String.valueOf(letter));
+
+                String green = "\033[32m"; // Green for correct
+                String yellow = "\033[93m"; // Yellow for present
+                String reset = "\033[0m"; // Reset color
+
+                if (isCorrectPosition) {
+                    grid[attempts][i] = green + letter + reset;
+                } else if (isPresentInWord) {
+                    grid[attempts][i] = yellow + letter + reset;
+                } else {
+                    grid[attempts][i] = String.valueOf(letter); // No color
+                }
+            }
+
             attempts++; // Increment attempts
-            System.out.print("\033[H\033[2J"); // Clears the console
+            System.out.print("\033[H\033[2J"); // Clear console
             System.out.flush();
-            printGrid();
+            printGrid(); // Print the updated grid
         }
     }
 }
