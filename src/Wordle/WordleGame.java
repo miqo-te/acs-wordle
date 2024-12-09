@@ -133,7 +133,14 @@ public class WordleGame {
         for (int i = 0; i < grid.length; i++) {
             System.out.print("│");
             for (int j = 0; j < grid[i].length; j++) {
-                System.out.print(" " + grid[i][j] + " │");
+                if (grid[i][j] != null) {
+                    // Ensure each cell has exactly 3 printable spaces
+                    String cell = grid[i][j].replaceAll("\033\\[[;\\d]*m", ""); // Remove ANSI codes for length
+                    int padding = 3 - cell.length(); // Calculate padding
+                    System.out.print(" ".repeat(padding / 2) + grid[i][j] + " ".repeat((padding + 1) / 2) + "│");
+                } else {
+                    System.out.print("   │"); // Empty space for unused cells
+                }
             }
             System.out.println();
             if (i < grid.length - 1) {
@@ -147,25 +154,11 @@ public class WordleGame {
     public void fillGrid(String guess) {
         if (submitGuess(guess)) {
             Attempt attempt = new Attempt(guess, secretWord);
-            String feedback = attempt.generateFeedback(guess, secretWord);
+            String[] feedback = attempt.generateFeedback(guess, secretWord); // Get color-coded feedback
 
-            // Populate the grid with color-coded feedback
-            for (int i = 0; i < 5; i++) {
-                char letter = guess.charAt(i);
-                boolean isCorrectPosition = letter == secretWord.charAt(i);
-                boolean isPresentInWord = secretWord.contains(String.valueOf(letter));
-
-                String green = "\033[32m"; // Green for correct
-                String yellow = "\033[93m"; // Yellow for present
-                String reset = "\033[0m"; // Reset color
-
-                if (isCorrectPosition) {
-                    grid[attempts][i] = green + letter + reset;
-                } else if (isPresentInWord) {
-                    grid[attempts][i] = yellow + letter + reset;
-                } else {
-                    grid[attempts][i] = String.valueOf(letter); // No color
-                }
+            // Populate the grid row for the current attempt
+            for (int i = 0; i < feedback.length; i++) {
+                grid[attempts][i] = feedback[i]; // Directly assign each feedback element
             }
 
             attempts++; // Increment attempts
