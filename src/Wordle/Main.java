@@ -38,7 +38,7 @@ public class Main {
             if (choice == 1) {
                 String guess = " ";
 //                startGame(initialWords, keyboard);
-                Player player1 = new Player(0, "MIKE HUNT");
+                Player player1 = new Player(0, "MKH");
                 WordList wordList = new WordList(initialWords);
                 WordleGame gameSession = new WordleGame(player1 ,wordList.getRandomWord());
                 Attempt attempt = new Attempt("", gameSession.secretWord);
