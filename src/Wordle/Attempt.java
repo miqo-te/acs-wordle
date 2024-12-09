@@ -12,27 +12,26 @@ public class Attempt {
     }
 
     public String generateFeedback(String guess, String secretWord) {
+        guessFeedback.setLength(0); // Reset at the start of the method
         for (int i = 0; i < 5; i++) {
             char currentChar = guess.charAt(i);
-            StringBuilder characterFeedback = new StringBuilder();
-            String green = "\033[32m";
-            String yellow = "\033[93m";
-            String reset = "\033[0m";
+            String green = "\033[32m"; // Green for correct position
+            String yellow = "\033[93m"; // Yellow for present in the word
+            String reset = "\033[0m"; // Reset color
             boolean isCorrectPosition = currentChar == secretWord.charAt(i);
             boolean isPresentInWord = secretWord.contains(String.valueOf(currentChar));
+
             if (isCorrectPosition) {
-                characterFeedback.append(green).append(currentChar).append(reset);
+                guessFeedback.append(green).append(currentChar).append(reset);
             } else if (isPresentInWord) {
-                characterFeedback.append(yellow).append(currentChar).append(reset);
-            } else if(currentChar >= 'A' && currentChar <= 'Z') {
-                characterFeedback.append(currentChar);
+                guessFeedback.append(yellow).append(currentChar).append(reset);
+            } else {
+                guessFeedback.append(currentChar);
             }
-            guessFeedback.append(characterFeedback);
         }
-        System.out.println(guessFeedback);
-        guessFeedback.setLength(0);
         return guessFeedback.toString();
     }
+
 
     public boolean isCorrect(String secretWord) {
         return guess.equals(secretWord);
