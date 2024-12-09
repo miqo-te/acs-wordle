@@ -43,6 +43,7 @@ public class Main {
                 WordleGame gameSession = new WordleGame(player1 ,wordList.getRandomWord());
                 Attempt attempt = new Attempt("", gameSession.secretWord);
                 gameSession.startGame();
+                System.out.println("Secret word for testing: " + gameSession.secretWord); // Printing the secret word for testing purposes!!
                 while (!gameSession.getIsGameOver()) {
                     guess = keyboard.nextLine();
                     if (gameSession.submitGuess(guess)) {
@@ -51,7 +52,7 @@ public class Main {
                     }
                 }
             } else if (choice == 2) {
-                System.out.println("Hello World");
+                System.out.println("Hello World"); // Will be replaced with leaderboard eventually
             } else if (choice == 3) {
                 System.out.println("Goodbye!");
                 break;
