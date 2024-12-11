@@ -34,12 +34,4 @@ public class CharacterFeedback {
     public boolean getPresentInWord() {
         return isPresentInWord;
     }
-
-    public void color() {
-        if (isCorrectPosition) {
-            character = "\033[32m"+character+"\033[0m";
-        } else if (isPresentInWord) {
-            character = "\033[93m"+character+"\033[0m";
-        }
-    }
 }
