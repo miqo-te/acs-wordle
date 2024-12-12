@@ -107,38 +107,44 @@ public class WordleGame {
 //        wordleDb.connectToDb("wordle_db", "postgres", "Student_1234");
 
         while (true) {
-            System.out.println("Welcome to Wordle!");
-            System.out.println("1. Start Game");
-            System.out.println("2. Leaderboard");
-            System.out.println("3. Exit");
-            System.out.print("Choose an option: ");
+            try { // Implemented error handling
+                System.out.println("Welcome to Wordle!");
+                System.out.println("1. Start Game");
+                System.out.println("2. Leaderboard");
+                System.out.println("3. Exit");
+                System.out.print("Choose an option: ");
 
-            int choice = keyboard.nextInt();
-            keyboard.nextLine(); // Consume newline
 
-            if (choice == 1) {
-                String guess = "";
-                grid = new Grid(6, 5);
-                secretWord = wordList.getRandomWord();
-                System.out.println("Secret word for testing: " + secretWord); // Printing the secret word for testing purposes!!
-                grid.print();
-                Attempt attempt = new Attempt(guess, secretWord);
-                while (!attempt.isGameOver()) {
-                    guess = keyboard.nextLine().toUpperCase();
-                    if (attempt.submitGuess(guess, secretWord, currentAttempt)) {
-                        attempt.generateFeedback(guess, secretWord);
-                        fillGrid(guess);
-                        currentAttempt++;
+                int choice = keyboard.nextInt();
+                keyboard.nextLine(); // Consume newline
+
+                if (choice == 1) {
+                    String guess = "";
+                    grid = new Grid(6, 5);
+                    secretWord = wordList.getRandomWord();
+                    System.out.println("Secret word for testing: " + secretWord); // Printing the secret word for testing purposes!!
+                    grid.print();
+                    Attempt attempt = new Attempt(guess, secretWord);
+                    while (!attempt.isGameOver()) {
+                        guess = keyboard.nextLine().toUpperCase();
+                        if (attempt.submitGuess(guess, secretWord, currentAttempt)) {
+                            attempt.generateFeedback(guess, secretWord);
+                            fillGrid(guess);
+                            currentAttempt++;
+                        }
                     }
+                    fillGrid(guess);
+                } else if (choice == 2) {
+                    System.out.println("Hello World"); // Will be replaced with leaderboard eventually
+                } else if (choice == 3) {
+                    System.out.println("Goodbye!");
+                    break;
+                } else {
+                    System.out.println("Invalid choice, please try again.");
                 }
-                fillGrid(guess);
-            } else if (choice == 2) {
-                System.out.println("Hello World"); // Will be replaced with leaderboard eventually
-            } else if (choice == 3) {
-                System.out.println("Goodbye!");
-                break;
-            } else {
-                System.out.println("Invalid choice, please try again.");
+            } catch (Exception e) {
+                System.out.println("Choice needs to be a number of type int, please try again.");
+                keyboard.next();
             }
         }
     }
@@ -172,10 +178,10 @@ public class WordleGame {
 
     public void fillGrid(String guess) {
         Attempt attempt = new Attempt(guess, secretWord);
-            String[] feedback = attempt.generateFeedback(guess, secretWord); // Generate feedback for the guess
-            grid.fillRow(attempts, feedback); // Fill the current row with feedback
-            attempts++; // Increment the attempt counter
-            grid.print(); // Print the updated grid
+        String[] feedback = attempt.generateFeedback(guess, secretWord); // Generate feedback for the guess
+        grid.fillRow(attempts, feedback); // Fill the current row with feedback
+        attempts++; // Increment the attempt counter
+        grid.print(); // Print the updated grid
     }
 
 //    public void printGrid() {
