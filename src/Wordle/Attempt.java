@@ -1,9 +1,9 @@
 package Wordle;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class Attempt {
+    private boolean isGameOver;
     protected String guess;
     private final StringBuilder[] guessFeedback = new StringBuilder[5];
     private List<CharacterFeedback> feedback;
@@ -24,6 +24,32 @@ public class Attempt {
         return guess;
     }
 
+    public boolean isGameOver() {
+        return isGameOver;
+    }
+
+    public void setGameOver(boolean gameOver) {
+        isGameOver = gameOver;
+    }
+
+    public boolean submitGuess(String guess, String secretWord, int attempts) {
+        if (guess.length() != 5) {
+            System.out.println("Invalid guess. Write a 5-letter word without spaces.");
+            return false;
+        }
+
+        if (guess.equals(secretWord)) {
+            System.out.println("Congratulations! You've guessed the word correctly.");
+            isGameOver = true;
+        } else if (attempts >= 5) {
+            System.out.println("Out of attempts! The secret word was: " + secretWord);
+            isGameOver = true;
+        }
+
+        return !isGameOver; // Return false if the game is over
+    }
+
+
     public String[] generateFeedback(String guess, String secretWord) {
         String[] feedback = new String[5];
         boolean[] used = new boolean[5]; // To track used letters in the secret word
@@ -40,7 +66,6 @@ public class Attempt {
                 used[i] = true; // Mark as used
             }
         }
-
         // Second pass: Check for presence in the word (yellow)
         for (int i = 0; i < 5; i++) {
             if (feedback[i] != null) continue; // Skip already matched letters
@@ -55,14 +80,12 @@ public class Attempt {
                     break;
                 }
             }
-
             if (matched) {
                 feedback[i] = yellow + currentChar + reset;
             } else {
                 feedback[i] = String.valueOf(currentChar); // Uncolored letter
             }
         }
-
         return feedback;
     }
 }
