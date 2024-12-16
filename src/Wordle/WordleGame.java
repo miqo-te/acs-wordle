@@ -1,5 +1,7 @@
 package Wordle;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -103,48 +105,72 @@ public class WordleGame {
 
     public void startGame() {
         Scanner keyboard = new Scanner(System.in);
-//        DbFunctions wordleDb = new DbFunctions();
-//        wordleDb.connectToDb("wordle_db", "postgres", "Student_1234");
+        DbFunctions db = new DbFunctions();
+        Connection con = db.connectToDb("wordle_db", "postgres", "Student_1234");
+        db.dropConstraints(con);
+        db.dropTables(con);
+        db.createTable(con);
 
         while (true) {
-            try { // Implemented error handling
-                System.out.println("Welcome to Wordle!");
-                System.out.println("1. Start Game");
-                System.out.println("2. Leaderboard");
-                System.out.println("3. Exit");
-                System.out.print("Choose an option: ");
+            System.out.println("Welcome to Wordle!");
+            System.out.println("1. Start Game");
+            System.out.println("2. Leaderboard");
+            System.out.println("3. Exit");
+            System.out.print("Choose an option: ");
 
+            int choice = keyboard.nextInt();
+            keyboard.nextLine(); // Consume newline
 
-                int choice = keyboard.nextInt();
-                keyboard.nextLine(); // Consume newline
-
-                if (choice == 1) {
-                    String guess = "";
-                    grid = new Grid(6, 5);
-                    secretWord = wordList.getRandomWord();
-                    System.out.println("Secret word for testing: " + secretWord); // Printing the secret word for testing purposes!!
-                    grid.print();
-                    Attempt attempt = new Attempt(guess, secretWord);
-                    while (!attempt.isGameOver()) {
-                        guess = keyboard.nextLine().toUpperCase();
-                        if (attempt.submitGuess(guess, secretWord, currentAttempt)) {
-                            attempt.generateFeedback(guess, secretWord);
-                            fillGrid(guess);
-                            currentAttempt++;
+            if (choice == 1) {
+                System.out.println("Write your name (3 characters long): ");
+                String playerName;
+                while (true) {
+                    playerName= keyboard.nextLine();
+                    // Check validity of input
+                    Player player = new Player(playerName);
+                    if (playerName != null && playerName.length() == 3) {
+                        player.setPlayerName(playerName);
+                        try {
+                            player.addPlayer(con);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
                         }
+                        break;
                     }
-                    fillGrid(guess);
-                } else if (choice == 2) {
-                    System.out.println("Hello World"); // Will be replaced with leaderboard eventually
-                } else if (choice == 3) {
-                    System.out.println("Goodbye!");
-                    break;
-                } else {
-                    System.out.println("Invalid choice, please try again.");
+                    System.out.println("Invalid input. Player name must be exactly 3 characters long.");
+                    playerName= " ";
                 }
-            } catch (Exception e) {
-                System.out.println("Choice needs to be a number of type int, please try again.");
-                keyboard.next();
+//                Player player = new Player(playerName);
+//                player.setPlayerName(playerName);
+//                try {
+//                    player.addPlayer(con, db);
+//                } catch (Exception e) {
+//                    throw new RuntimeException(e);
+//                }
+                String guess = "";
+                grid = new Grid(6, 5);
+                secretWord = wordList.getRandomWord();
+                System.out.println("Secret word for testing: " + secretWord); // Printing the secret word for testing purposes!!
+                grid.print();
+                Attempt attempt = new Attempt(guess, secretWord);
+                while (!attempt.isGameOver()) {
+                    guess = keyboard.nextLine().toUpperCase();
+                    if (attempt.submitGuess(guess, secretWord, currentAttempt)) {
+                        attempt.generateFeedback(guess, secretWord);
+                        fillGrid(guess);
+                        currentAttempt++;
+                    }
+                }
+                fillGrid(guess);
+                attempts = 0;
+                currentAttempt = (byte) 0;
+            } else if (choice == 2) {
+                System.out.println("Hello World"); // Will be replaced with leaderboard eventually
+            } else if (choice == 3) {
+                System.out.println("Goodbye!");
+                break;
+            } else {
+                System.out.println("Invalid choice, please try again.");
             }
         }
     }
@@ -178,10 +204,10 @@ public class WordleGame {
 
     public void fillGrid(String guess) {
         Attempt attempt = new Attempt(guess, secretWord);
-        String[] feedback = attempt.generateFeedback(guess, secretWord); // Generate feedback for the guess
-        grid.fillRow(attempts, feedback); // Fill the current row with feedback
-        attempts++; // Increment the attempt counter
-        grid.print(); // Print the updated grid
+            String[] feedback = attempt.generateFeedback(guess, secretWord); // Generate feedback for the guess
+            grid.fillRow(attempts, feedback); // Fill the current row with feedback
+            attempts++; // Increment the attempt counter
+            grid.print(); // Print the updated grid
     }
 
 //    public void printGrid() {
