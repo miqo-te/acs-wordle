@@ -1,33 +1,12 @@
 package Wordle;
 
+import java.io.*;
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class WordleGame {
-    List<String> initialWords = Arrays.asList(
-            "APPLE", "ALERT", "BEACH", "BROAD", "CHEAP", "DAILY", "BROKE",
-            "CHECK", "DANCE", "BROWN", "CHAIR", "CRISP", "EARTH", "FAITH",
-            "FIELD", "FLAIR", "FRESH", "GIANT", "GRACE", "HAPPY", "HEART",
-            "HOUSE", "INDEX", "JUICE", "LIGHT", "LUNCH", "MONEY", "NIGHT",
-            "OCEAN", "PEACH", "PLANE", "PRIZE", "QUIET", "RIVER", "SLEEP",
-            "SMILE", "STORM", "SUGAR", "TABLE", "THINK", "TRAIN", "TRUTH",
-            "UNION", "VALUE", "VOICE", "WATCH", "WORLD", "WORTH", "YOUTH",
-            "AGILE", "ALIVE", "BLEND", "BLOOM", "BLAST", "BRAVE", "BRICK",
-            "CHILL", "CIVIC", "CLEAN", "CLOSE", "CLOUD", "COAST", "CRANE",
-            "CRAFT", "DAIRY", "DELAY", "DEPTH", "DRIVE", "ELITE", "ENTER",
-            "EQUAL", "EVERY", "FLUID", "FOCUS", "FORCE", "FRAME", "FRUIT",
-            "GLORY", "GRIND", "GROVE", "HUMOR", "HONEY", "IDEAL", "IMAGE",
-            "KNOCK", "LEMON", "LOGIC", "MAGIC", "MIGHT", "MOUNT", "MUSIC",
-            "NOVEL", "POWER", "PRIME", "QUIRK", "RAISE", "RIGHT", "SHARE",
-            "SHINE", "SPACE", "SOLAR", "SOUND", "STAGE", "TREND", "UNITY"
-    );
-    WordList wordList = new WordList(initialWords);
+    private int gameId;
     private Grid grid;
-    private Scanner scanner;
-    Scanner keyboard = new Scanner(System.in);
     protected final byte MAX_ATTEMPTS = 6;
     protected String secretWord;
     private boolean isGameOver;
@@ -35,6 +14,15 @@ public class WordleGame {
     private int attempts;
     private Player player;
     private int gameScore;
+    List<String> attemptsList = new ArrayList<>();
+
+    public int getGameId() {
+        return gameId;
+    }
+
+    public void setGameId(int gameId) {
+        this.gameId = gameId;
+    }
 
     public WordleGame() {
         setPlayer(player);
@@ -43,12 +31,7 @@ public class WordleGame {
         setAttempts(0);
         setGameScore(0);
         setIsGameOver(false);
-//        this.grid = new String[MAX_ATTEMPTS][secretWord.length()];
-//        for (int i = 0; i < MAX_ATTEMPTS; i++) {
-//            for (int j = 0; j < secretWord.length(); j++) {
-//                grid[i][j] = " "; // Initialize as empty strings
-//            }
-//        }
+        setGameId(gameId);
     }
 
     public byte getMAX_ATTEMPTS() {
@@ -104,69 +87,246 @@ public class WordleGame {
     }
 
     public void startGame() {
+        File words = new File("words.txt");
         Scanner keyboard = new Scanner(System.in);
         DbFunctions db = new DbFunctions();
         Connection con = db.connectToDb("wordle_db", "postgres", "Student_1234");
-        db.dropConstraints(con);
-        db.dropTables(con);
-        db.createTable(con);
-
+        WordList wordList = new WordList(new HashSet<>());
+//        db.dropConstraints(con);
+//        db.dropTables(con);
+//        db.createTable(con);
+//        try {
+//            db.addWordsToDb(con, words);
+//            System.out.println("Words added to the database");
+//        } catch (Exception e) {
+//            System.out.println(" Failed to load the words file");
+//        }
+        wordList.loadWordsFromDatabase(con);
+        String playerName = " ";
+        Player player = new Player(playerName);
         while (true) {
             System.out.println("Welcome to Wordle!");
             System.out.println("1. Start Game");
-            System.out.println("2. Leaderboard");
-            System.out.println("3. Exit");
+            System.out.println("2. Load Game");
+            System.out.println("3. Player management");
+            System.out.println("4. Leaderboard");
+            System.out.println("5. Exit");
             System.out.print("Choose an option: ");
 
             int choice = keyboard.nextInt();
             keyboard.nextLine(); // Consume newline
 
             if (choice == 1) {
-                System.out.println("Write your name (3 characters long): ");
-                String playerName;
-                while (true) {
-                    playerName= keyboard.nextLine();
-                    // Check validity of input
-                    Player player = new Player(playerName);
-                    if (playerName != null && playerName.length() == 3) {
-                        player.setPlayerName(playerName);
-                        try {
-                            player.addPlayer(con);
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                        break;
+                boolean startGameMenu = false;
+                while (!startGameMenu) {
+                    System.out.println("1. Create a new player");
+                    System.out.println("2. Select an existing player");
+                    System.out.println("3. Back");
+                    System.out.print("Choose an option: ");
+                    int startMenu = keyboard.nextInt();
+                    keyboard.nextLine();
+                    switch (startMenu) {
+                        case 1:
+                            System.out.print("Write your name (3 characters long): ");
+                            playerName = keyboard.nextLine();
+                            System.out.print("Write your email address: ");
+                            String email = keyboard.nextLine().strip();
+                            while (!player.isValidName(playerName) || player.playerExists(con, playerName)) {
+                                System.out.println("Please enter a valid name: ");
+                                playerName = keyboard.nextLine();
+                            }
+                            player.addPlayer(con, playerName, email, 0, 0);
+                            String guess = "";
+                            grid = new Grid(6, 5);
+                            secretWord = wordList.getRandomWord();
+                            System.out.println("Secret word for testing: " + secretWord); // Printing the secret word for testing purposes!!
+                            grid.print();
+                            long startTime = System.currentTimeMillis();
+                            Attempt attempt = new Attempt(guess, secretWord);
+                            GameState gameState = new GameState(gameId);
+                            while (!attempt.isGameOver()) {
+                                guess = keyboard.nextLine().toUpperCase();
+                                if (guess.equalsIgnoreCase("SAVE")) {
+                                    endGame(db.getPlayerIdByName(con, playerName), db.getWordIdByWord(con, secretWord), con, db);
+                                    // Call the saveGame method and pass the list of attempts so far
+                                    gameState.saveGame(con, attemptsList, db.getGameId(con), db.getWordIdByWord(con, secretWord));
+                                    endSession();
+                                    break;
+                                } else if (attempt.submitGuess(guess, secretWord, currentAttempt) && wordList.containsWord(guess)) {
+                                    // If the guess is valid, process it
+                                    attempt.generateFeedback(guess, secretWord);
+                                    fillGrid(guess);
+                                    grid.print();
+                                    attemptsList.add(guess); // Add the guess to the list of attempts for saving
+                                    currentAttempt++;
+                                }
+                            }
+                            fillGrid(guess);
+                            long endTime = System.currentTimeMillis();
+                            endGame(attempts, startTime, endTime, db.getPlayerIdByName(con, playerName), db.getWordIdByWord(con, secretWord), con, db);
+                            attempts = 0;
+                            currentAttempt = (byte) 0;
+                            startGameMenu = true;
+
+                            break;
+                        case 2:
+                            System.out.println("Here are all the players:");
+                            player.getPlayers(con);
+                            System.out.println("Choose an existing player: ");
+                            String name = keyboard.nextLine();
+                            guess = "";
+                            grid = new Grid(6, 5);
+                            secretWord = wordList.getRandomWord();
+                            System.out.println("Secret word for testing: " + secretWord); // Printing the secret word for testing purposes!!
+                            grid.print();
+                            attempt = new Attempt(guess, secretWord);
+                            startTime = System.currentTimeMillis();
+                            gameState = new GameState(gameId);
+                            while (!attempt.isGameOver()) {
+                                guess = keyboard.nextLine().toUpperCase();
+                                if (guess.equalsIgnoreCase("SAVE")) {
+                                    endGame(db.getPlayerIdByName(con, name), db.getWordIdByWord(con, secretWord), con, db);
+                                    // Call the saveGame method and pass the list of attempts so far
+                                    gameState.saveGame(con, attemptsList, db.getGameId(con), db.getWordIdByWord(con, secretWord));
+                                    endSession();
+                                    break;
+                                } else if (attempt.submitGuess(guess, secretWord, currentAttempt) && wordList.containsWord(guess)) {
+                                    // If the guess is valid, process it
+                                    attempt.generateFeedback(guess, secretWord);
+                                    fillGrid(guess);
+                                    grid.print();
+                                    attemptsList.add(guess); // Add the guess to the list of attempts for saving
+                                    currentAttempt++;
+                                }
+                            }
+                            fillGrid(guess);
+                            endTime = System.currentTimeMillis();
+                            endGame(attempts, startTime, endTime, db.getPlayerIdByName(con, name), db.getWordIdByWord(con, secretWord), con, db);
+                            attempts = 0;
+                            currentAttempt = (byte) 0;
+                            startGameMenu = true;
+                            break;
+                        case 3:
+                            startGameMenu = true;
+                            break;
+                        default:
+                            System.out.println("Invalid choice. Please try again.");
                     }
-                    System.out.println("Invalid input. Player name must be exactly 3 characters long.");
-                    playerName= " ";
+
+
                 }
-//                Player player = new Player(playerName);
-//                player.setPlayerName(playerName);
-//                try {
-//                    player.addPlayer(con, db);
-//                } catch (Exception e) {
-//                    throw new RuntimeException(e);
-//                }
-                String guess = "";
+            } else if (choice == 2) {
                 grid = new Grid(6, 5);
-                secretWord = wordList.getRandomWord();
-                System.out.println("Secret word for testing: " + secretWord); // Printing the secret word for testing purposes!!
+                int savedWordId = db.getWordIdFromGameState(con);
+                String savedSecretWord = db.getWord(con, savedWordId);
+                Attempt savedAttempt = new Attempt(savedSecretWord, secretWord);
+                if (savedSecretWord == null) {
+                    throw new IllegalStateException("Error: Secret word is null! Check database retrieval logic.");
+                }
+
+                secretWord = savedSecretWord;
+                GameState gameState = new GameState(gameId);
+                StringBuilder loadedWord = new StringBuilder();
+                System.out.println("Saved secret word: " + savedSecretWord);
+                for (int attemptNumber = 1; attemptNumber <= db.getNumberOfAttempts(con); attemptNumber++) {
+                    // Load word from GameState table
+                    String word = String.valueOf(gameState.loadWord(con, attemptNumber, savedWordId));
+
+                    if (word != null) {
+                        loadedWord.append(word);
+                    } else {
+                        System.out.println("No data found for attempt " + attemptNumber + ", skipping...");
+                        continue;
+                    }
+
+                    // Generate feedback and fill grid
+                    fillGrid(loadedWord.toString());
+                    loadedWord.setLength(0);
+                }
                 grid.print();
-                Attempt attempt = new Attempt(guess, secretWord);
-                while (!attempt.isGameOver()) {
+                String guess = " ";
+                while (!savedAttempt.isGameOver()) {
                     guess = keyboard.nextLine().toUpperCase();
-                    if (attempt.submitGuess(guess, secretWord, currentAttempt)) {
-                        attempt.generateFeedback(guess, secretWord);
+                    if (guess.equalsIgnoreCase("SAVE")) {
+                        // Call the saveGame method and pass the list of attempts so far
+                        gameState.saveGame(con, attemptsList, db.getGameId(con), db.getWordIdByWord(con, secretWord));
+                        endSession();
+                        break;
+                    } else if (savedAttempt.submitGuess(guess, secretWord, currentAttempt) && wordList.containsWord(guess)) {
+                        // If the guess is valid, process it
+                        savedAttempt.generateFeedback(guess, secretWord);
                         fillGrid(guess);
+                        grid.print();
+                        attemptsList.add(guess); // Add the guess to the list of attempts for saving
                         currentAttempt++;
+                        fillGrid(guess);
                     }
                 }
-                fillGrid(guess);
                 attempts = 0;
                 currentAttempt = (byte) 0;
-            } else if (choice == 2) {
-                System.out.println("Hello World"); // Will be replaced with leaderboard eventually
             } else if (choice == 3) {
+                boolean back = false;
+                while (!back) {
+                    System.out.println("1. Create a new player");
+                    System.out.println("2. Select an existing player");
+                    System.out.println("3. Back");
+                    System.out.print("Choose an option: ");
+                    int playerMenu = keyboard.nextInt();
+                    keyboard.nextLine();
+                    switch (playerMenu) {
+                        case 1:
+                            System.out.println("Write your name (3 characters long) and email: ");
+                            playerName = keyboard.nextLine();
+                            String email = keyboard.nextLine();
+                            while (!player.isValidName(playerName) || player.playerExists(con, playerName)) {
+                                System.out.println("Please enter a valid name: ");
+                                playerName = keyboard.nextLine();
+                            }
+                            player.addPlayer(con, playerName, email, 0, 0);
+                            break;
+                        case 2:
+                            System.out.println("Here are all the players:");
+                            player.getPlayers(con);
+                            System.out.println("Choose an existing player: ");
+                            String playerChoice = keyboard.nextLine();
+                            player.showPlayerInfo(con, playerChoice);
+                            break;
+                        case 3:
+                            back = true;
+                            break;
+                        default:
+                            System.out.println("Invalid choice. Please try again.");
+                    }
+                }
+
+            } else if (choice == 4) {
+                boolean back = false;
+                while (!back) {
+                    System.out.println("1. Show the leaderboard");
+                    System.out.println("2. Show the leaderboard for a specific player");
+                    System.out.println("3. Back");
+                    System.out.print("Choose an option: ");
+                    int leaderBoard = keyboard.nextInt();
+                    keyboard.nextLine();
+                    switch (leaderBoard) {
+                        case 1:
+                            db.printLeaderboard(con);
+                            break;
+                        case 2:
+                            System.out.println("Here are all the players:");
+                            player.getPlayers(con);
+                            System.out.println("Choose an existing player: ");
+                            String playerChoiceLeaderBoard = keyboard.nextLine();
+                            db.printLeaderboard(con, playerChoiceLeaderBoard);
+                            break;
+                        case 3:
+                            back = true;
+                            break;
+                        default:
+                            System.out.println("Invalid choice. Please try again.");
+                    }
+                }
+            } else if (choice == 5) {
                 System.out.println("Goodbye!");
                 break;
             } else {
@@ -175,90 +335,44 @@ public class WordleGame {
         }
     }
 
-//    public boolean submitGuess(String guess) {
-//        if (isGameOver) {
-//            System.out.println("Game over");
-//            return false;
-//        }
-//
-//        if (guess.length() != 5 || guess.contains(" ")) {
-//            System.out.println("Invalid guess. Write a 5 letter word without spaces.");
-//            return false;
-//        }
-//
-//        if (guess.equals(secretWord)) {
-//            System.out.println("Congratulations! You've guessed the word correctly.");
-//            isGameOver = true;
-//
-//        } else if (attempts >= MAX_ATTEMPTS - 1) {
-//            System.out.println("Out of attempts! The secret word was: " + secretWord);
-//            isGameOver = true;
-//        }
-//      return true;
-//    }
-
     public void endSession() {
-        setIsGameOver(true);
         System.out.println("Game session ended");
+        System.exit(0);
     }
 
     public void fillGrid(String guess) {
         Attempt attempt = new Attempt(guess, secretWord);
-            String[] feedback = attempt.generateFeedback(guess, secretWord); // Generate feedback for the guess
-            grid.fillRow(attempts, feedback); // Fill the current row with feedback
-            attempts++; // Increment the attempt counter
-            grid.print(); // Print the updated grid
+        String[] feedback = attempt.generateFeedback(guess, secretWord); // Generate feedback for the guess
+        grid.fillRow(attempts, feedback); // Fill the current row with feedback
+        attempts++; // Increment the attempt counter
+        //grid.print(); // Print the updated grid
     }
 
-//    public void printGrid() {
-//        System.out.println("┌───┬───┬───┬───┬───┐");
-//        for (int i = 0; i < grid.length; i++) {
-//            System.out.print("│");
-//            for (int j = 0; j < grid[i].length; j++) {
-//                if (grid[i][j] != null) {
-//                    // Ensure each cell has exactly 3 printable spaces
-//                    String cell = grid[i][j].replaceAll("\033\\[[;\\d]*m", ""); // Remove ANSI codes for length
-//                    int padding = 3 - cell.length(); // Calculate padding
-//                    System.out.print(" ".repeat(padding / 2) + grid[i][j] + " ".repeat((padding + 1) / 2) + "│");
-//                } else {
-//                    System.out.print("   │"); // Empty space for unused cells
-//                }
-//            }
-//            System.out.println();
-//            if (i < grid.length - 1) {
-//                System.out.println("├───┼───┼───┼───┼───┤");
-//            }
-//        }
-//        System.out.println("└───┴───┴───┴───┴───┘");
-//    }
+    public void endGame(int attemptsUsed, long startTime, long endTime, int playerId, int wordId, Connection con, DbFunctions dbFunctions) {
+        // Calculate time taken
+        long timeTakenInSeconds = (endTime - startTime) / 1000;
 
+        // Calculate the score
+        int score = calculateScore(attemptsUsed, timeTakenInSeconds);
+        System.out.println("Final Score: " + score);
 
-//    public void fillGrid(String guess) {
-//        if (submitGuess(guess)) {
-//            Attempt attempt = new Attempt(guess, secretWord);
-//            String[] feedback = attempt.generateFeedback(guess, secretWord); // Get color-coded feedback
-//
-//            // Populate the grid row for the current attempt
-//            for (int i = 0; i < feedback.length; i++) {
-//                grid[attempts][i] = feedback[i]; // Directly assign each feedback element
-//            }
-//
-//            attempts++; // Increment attempts
-//            System.out.print("\033[H\033[2J"); // Clear console
-//            System.out.flush();
-//            printGrid(); // Print the updated grid
-//        }
-//    }
+        // Save the score to the database
+        dbFunctions.addGamesToDb(con, playerId, wordId, score);
+    }
 
+    public void endGame(int playerId, int wordId, Connection con, DbFunctions dbFunctions) {
+        dbFunctions.addGamesToDb(con, playerId, wordId, 0);
+    }
 
-//    public List<CharacterFeedback> getFeedback(String guess) {
-//        List<CharacterFeedback> feedback = new ArrayList<CharacterFeedback>();
-//        for (int i = 0; i < 5; i++) {
-//            char guessedChar = guess.charAt(i);
-//            boolean isCorrectPosition = guessedChar == secretWord.charAt(i);
-//            boolean isPresentInWord = secretWord.contains(Character.toString(guessedChar));
-//            feedback.add(new CharacterFeedback(guessedChar, isCorrectPosition, isPresentInWord));
-//        }
-//      return feedback;
-//    }
+    private int calculateScore(int attemptsUsed, long timeTakenInSeconds) {
+        final int BASE_SCORE = 1000;
+        final int ATTEMPT_PENALTY = 100;
+        final int TIME_THRESHOLD = 300; // 5 minutes
+
+        int attemptPenalty = Math.max(0, ATTEMPT_PENALTY * (attemptsUsed - 1));
+        int baseScoreAfterAttempts = Math.max(0, BASE_SCORE - attemptPenalty);
+
+        double timeBonus = Math.max(0.5, 1.0 - ((double) timeTakenInSeconds / TIME_THRESHOLD));
+        return (int) (baseScoreAfterAttempts * timeBonus);
+    }
 }
