@@ -1,13 +1,34 @@
 package Wordle;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
-
 public class Main {
     public static void main(String[] args) {
         WordleGame gameSession = new WordleGame();
         gameSession.startGame();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //        DbFunctions wordleDb = new DbFunctions();
 //        wordleDb.connectToDb("wordle_db", "postgres", "Student_1234");
 //        Scanner keyboard = new Scanner(System.in);
