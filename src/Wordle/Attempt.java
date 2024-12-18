@@ -6,7 +6,6 @@ public class Attempt {
     private boolean isGameOver;
     protected String guess;
     private final StringBuilder[] guessFeedback = new StringBuilder[5];
-    private List<CharacterFeedback> feedback;
 
     public Attempt(String guess, String secretWord) {
         setGuess(guess);
@@ -33,8 +32,8 @@ public class Attempt {
     }
 
     public boolean submitGuess(String guess, String secretWord, int attempts) {
-        if (guess.length() != 5) {
-            System.out.println("Invalid guess. Write a 5-letter word without spaces.");
+        if (guess.length() != 5 && guess.contains(" ")) {
+            System.out.println("Write a 5-letter word without spaces.");
             return false;
         }
 
