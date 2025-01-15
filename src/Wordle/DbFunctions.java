@@ -7,42 +7,47 @@ import java.util.Scanner;
 
 
 public class DbFunctions {
-    public Connection connectToDb(String dbname, String user, String password) {
+    public Connection connectToDb() {
         Connection con = null;
         try {
+            // Load PostgreSQL driver
             Class.forName("org.postgresql.Driver");
-            con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/" + dbname, user, password);
-            if (con != null) {
-                System.out.println("Connected to PostgreSQL database");
-            } else {
-                System.out.println("Failed to connect to PostgreSQL database");
-            }
-//            assert con != null;
-//            System.out.println("Connection closed!");
 
-        } catch (SQLException | ClassNotFoundException e) {
-            System.out.println(e.getMessage());
+            // Use your Railway connection URL here
+            String url = "jdbc:postgresql://junction.proxy.rlwy.net:47406/railway";
+            String user = "postgres";  // Username provided in the URL
+            String password = "xdfLqGhKZxCTPIwBAqbkCHmsYKRvcmPt";  // Password provided in the URL
+
+            // Establish the connection
+            con = DriverManager.getConnection(url, user, password);
+
+            System.out.println("Connected to the database successfully!");
+        } catch (ClassNotFoundException e) {
+            System.err.println("PostgreSQL Driver not found. Ensure it's in the classpath.");
+            e.printStackTrace();
+        } catch (SQLException e) {
+            System.err.println("Database connection failed.");
+            e.printStackTrace();
         }
         return con;
     }
+
+
+
 
     public void dropConstraints(Connection con) {
         Statement statement;
         try {
             statement = con.createStatement();
             statement.executeUpdate("""
-                     DO $$
-                     BEGIN
-                     IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_player_id') THEN
-                        ALTER TABLE games DROP CONSTRAINT fk_player_id;
-                    END IF;
-                    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_word_id') THEN
-                       ALTER TABLE games DROP CONSTRAINT fk_word_id;
-                    END IF;
-                    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_game_id') THEN
-                       ALTER TABLE game_state DROP CONSTRAINT fk_game_id;
-                    END IF;
-                    END $$;""");
+                     ALTER TABLE game_state
+                               DROP CONSTRAINT IF EXISTS fk_word_id,
+                               DROP CONSTRAINT IF EXISTS fk_game_id;
+                    
+                           ALTER TABLE games
+                               DROP CONSTRAINT IF EXISTS fk_word_id,
+                               DROP CONSTRAINT IF EXISTS fk_player_id;
+                    """);
             System.out.println("Table constraints dropped");
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -53,7 +58,7 @@ public class DbFunctions {
         Statement statement;
         try {
             statement = con.createStatement();
-            statement.executeUpdate("DROP TABLE IF EXISTS players, words, scores, games;");
+            statement.executeUpdate("DROP TABLE IF EXISTS players, words, game_state, games;");
             System.out.println("Tables dropped");
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -69,11 +74,7 @@ public class DbFunctions {
                       (
                           player_id   SERIAL PRIMARY KEY,
                           player_name VARCHAR(3) NOT NULL UNIQUE,
-                          email       VARCHAR(30) UNIQUE,
-                          play_count  INT        NOT NULL DEFAULT 0,
-                          CONSTRAINT ch_play_count CHECK (play_count >= 0),
-                          total_wins  INT        NOT NULL DEFAULT 0,
-                          CONSTRAINT ch_total_wins CHECK (total_wins >= 0)
+                          email       VARCHAR(30) UNIQUE
                       );
                     """);
             System.out.println("Table players created");
@@ -90,6 +91,7 @@ public class DbFunctions {
                     (
                         letter_id       SERIAL PRIMARY KEY,
                         game_id         INT     NOT NULL,
+                        word_id         INT     NOT NULL,
                         attempt_number  INT     NOT NULL
                             CONSTRAINT ch_attempt_nr_range CHECK (attempt_number > 0 AND attempt_number < 6),
                         letter_position INT     NOT NULL
@@ -98,29 +100,30 @@ public class DbFunctions {
                             CONSTRAINT ch_valid_letter CHECK (letter >= 'A' AND letter <= 'Z')
                     );
                     """);
-            System.out.println("Table scores created");
+            System.out.println("Table game state created");
             statement.executeUpdate("""
                     CREATE TABLE IF NOT EXISTS games
-                    (
-                        game_id   SERIAL PRIMARY KEY,
-                        player_id INT  NOT NULL,
-                        word_id   INT  NOT NULL,
-                        score     INT  NOT NULL
-                            CONSTRAINT ch_valid_score CHECK ( score >= 0 ),
-                        date      DATE NOT NULL
-                    );
+                      (
+                          game_id   SERIAL PRIMARY KEY,
+                          player_id INT  NOT NULL,
+                          word_id   INT  NOT NULL,
+                          score     INT  NOT NULL
+                              CONSTRAINT ch_valid_score CHECK ( score >= 0 ),
+                          date      DATE NOT NULL
+                      );
                     """);
             statement.executeUpdate("""
                     ALTER TABLE game_state
-                        ADD
-                            CONSTRAINT fk_game_id FOREIGN KEY (game_id) REFERENCES games (game_id);
+                        ADD 
+                            CONSTRAINT fk_game_id FOREIGN KEY (game_id) REFERENCES games (game_id),
+                        ADD CONSTRAINT fk_word_id FOREIGN KEY (word_id) REFERENCES words (word_id);
                     """);
             statement.executeUpdate("""
                     ALTER TABLE games
-                        ADD
-                            CONSTRAINT fk_player_id FOREIGN KEY (player_id) REFERENCES players (player_id),
-                        ADD
-                            CONSTRAINT fk_word_id FOREIGN KEY (word_id) REFERENCES words (word_id);
+                    ADD
+                    CONSTRAINT fk_player_id FOREIGN KEY (player_id) REFERENCES players (player_id),
+                    ADD
+                    CONSTRAINT fk_word_id FOREIGN KEY (word_id) REFERENCES words (word_id);
                     """);
             System.out.println("Table games created");
         } catch (Exception e) {
@@ -322,5 +325,10 @@ public class DbFunctions {
         } catch (Exception e) {
             System.out.println("Error retrieving scores for " + playerName + ": " + e.getMessage());
         }
+    }
+
+    public void closeConnection(Connection con) {
+        assert con != null;
+        System.out.println("Connection closed!");
     }
 }

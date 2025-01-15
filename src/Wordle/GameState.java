@@ -1,7 +1,7 @@
 package Wordle;
 
 import java.sql.*;
-import java.util.*;
+import java.util.List;
 
 public class GameState {
     private final int gameId;
@@ -12,7 +12,8 @@ public class GameState {
 
     /**
      * Saves the current game session to the GameState table.
-     * @param con Database connection
+     *
+     * @param con      Database connection
      * @param attempts List of attempts; each attempt is a word guessed by the player
      */
     public void saveGame(Connection con, List<String> attempts, int gameId, int wordId) {
@@ -56,6 +57,7 @@ public class GameState {
 
     /**
      * Loads the saved game session from the GameState table.
+     *
      * @param con Database connection
      * @return A list of words (attempts) from the saved game session
      */
@@ -63,7 +65,7 @@ public class GameState {
         String query = "SELECT letter " +
                 "FROM game_state " +
                 "WHERE attempt_number = ? " +
-                "ORDER BY letter_position ASC";
+                "ORDER BY letter_position ";
 
         StringBuilder loadedWord = new StringBuilder();
 

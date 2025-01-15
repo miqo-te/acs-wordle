@@ -1,8 +1,7 @@
 package Wordle;
 
-import java.util.List;
-
 public class Attempt {
+    private boolean gameWon;
     private boolean isGameOver;
     protected String guess;
     private final StringBuilder[] guessFeedback = new StringBuilder[5];
@@ -31,6 +30,14 @@ public class Attempt {
         isGameOver = gameOver;
     }
 
+    public boolean isGameWon() {
+        return gameWon;
+    }
+
+    public void setGameWon(boolean gameWon) {
+        this.gameWon = gameWon;
+    }
+
     public boolean submitGuess(String guess, String secretWord, int attempts) {
         if (guess.length() != 5 && guess.contains(" ")) {
             System.out.println("Write a 5-letter word without spaces.");
@@ -38,8 +45,13 @@ public class Attempt {
         }
 
         if (guess.equals(secretWord)) {
+            setGameWon(true);
+        }
+
+        if (guess.equals(secretWord)) {
             System.out.println("Congratulations! You've guessed the word correctly.");
             isGameOver = true;
+            gameWon = true;
         } else if (attempts >= 5) {
             System.out.println("Out of attempts! The secret word was: " + secretWord);
             isGameOver = true;

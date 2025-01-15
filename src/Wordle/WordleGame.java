@@ -1,10 +1,14 @@
 package Wordle;
 
-import java.io.*;
+import java.io.File;
 import java.sql.Connection;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Scanner;
 
 public class WordleGame {
+    private boolean gameWon;
     private int gameId;
     private Grid grid;
     protected final byte MAX_ATTEMPTS = 6;
@@ -32,6 +36,10 @@ public class WordleGame {
         setGameScore(0);
         setIsGameOver(false);
         setGameId(gameId);
+    }
+
+    public void setGameWon(boolean gameWon) {
+        this.gameWon = gameWon;
     }
 
     public byte getMAX_ATTEMPTS() {
@@ -90,7 +98,7 @@ public class WordleGame {
         File words = new File("words.txt");
         Scanner keyboard = new Scanner(System.in);
         DbFunctions db = new DbFunctions();
-        Connection con = db.connectToDb("wordle_db", "postgres", "Student_1234");
+        Connection con = db.connectToDb();
         WordList wordList = new WordList(new HashSet<>());
 //        db.dropConstraints(con);
 //        db.dropTables(con);
@@ -135,7 +143,7 @@ public class WordleGame {
                                 System.out.println("Please enter a valid name: ");
                                 playerName = keyboard.nextLine();
                             }
-                            player.addPlayer(con, playerName, email, 0, 0);
+                            player.addPlayer(con, playerName, email);
                             String guess = "";
                             grid = new Grid(6, 5);
                             secretWord = wordList.getRandomWord();
@@ -144,6 +152,7 @@ public class WordleGame {
                             long startTime = System.currentTimeMillis();
                             Attempt attempt = new Attempt(guess, secretWord);
                             GameState gameState = new GameState(gameId);
+                            gameWon = attempt.isGameWon();
                             while (!attempt.isGameOver()) {
                                 guess = keyboard.nextLine().toUpperCase();
                                 if (guess.equalsIgnoreCase("SAVE")) {
@@ -163,7 +172,8 @@ public class WordleGame {
                             }
                             fillGrid(guess);
                             long endTime = System.currentTimeMillis();
-                            endGame(attempts, startTime, endTime, db.getPlayerIdByName(con, playerName), db.getWordIdByWord(con, secretWord), con, db);
+                            gameWon =  attempt.isGameWon();
+                            endGame(attempts, startTime, endTime, db.getPlayerIdByName(con, playerName), db.getWordIdByWord(con, secretWord), con, db, gameWon);
                             attempts = 0;
                             currentAttempt = (byte) 0;
                             startGameMenu = true;
@@ -201,7 +211,8 @@ public class WordleGame {
                             }
                             fillGrid(guess);
                             endTime = System.currentTimeMillis();
-                            endGame(attempts, startTime, endTime, db.getPlayerIdByName(con, name), db.getWordIdByWord(con, secretWord), con, db);
+                            gameWon =  attempt.isGameWon();
+                            endGame(attempts, startTime, endTime, db.getPlayerIdByName(con, name), db.getWordIdByWord(con, secretWord), con, db, gameWon);
                             attempts = 0;
                             currentAttempt = (byte) 0;
                             startGameMenu = true;
@@ -216,6 +227,7 @@ public class WordleGame {
 
                 }
             } else if (choice == 2) {
+                long startTime = System.currentTimeMillis();
                 grid = new Grid(6, 5);
                 int savedWordId = db.getWordIdFromGameState(con);
                 String savedSecretWord = db.getWord(con, savedWordId);
@@ -245,6 +257,7 @@ public class WordleGame {
                 }
                 grid.print();
                 String guess = " ";
+                int savedAttemptNumber = db.getNumberOfAttempts(con);
                 while (!savedAttempt.isGameOver()) {
                     guess = keyboard.nextLine().toUpperCase();
                     if (guess.equalsIgnoreCase("SAVE")) {
@@ -252,18 +265,20 @@ public class WordleGame {
                         gameState.saveGame(con, attemptsList, db.getGameId(con), db.getWordIdByWord(con, secretWord));
                         endSession();
                         break;
-                    } else if (savedAttempt.submitGuess(guess, secretWord, currentAttempt) && wordList.containsWord(guess)) {
+                    } else if (savedAttempt.submitGuess(guess, secretWord, savedAttemptNumber) && wordList.containsWord(guess)) {
                         // If the guess is valid, process it
                         savedAttempt.generateFeedback(guess, secretWord);
                         fillGrid(guess);
                         grid.print();
                         attemptsList.add(guess); // Add the guess to the list of attempts for saving
-                        currentAttempt++;
-                        fillGrid(guess);
+                        savedAttemptNumber++;
                     }
                 }
+                long endTime = System.currentTimeMillis();
+                gameWon =  savedAttempt.isGameWon();
+                endGame(attempts, startTime, endTime, db.getPlayerIdByName(con, "SAV"), db.getWordIdByWord(con, secretWord), con, db, gameWon);
+                fillGrid(guess);
                 attempts = 0;
-                currentAttempt = (byte) 0;
             } else if (choice == 3) {
                 boolean back = false;
                 while (!back) {
@@ -282,7 +297,7 @@ public class WordleGame {
                                 System.out.println("Please enter a valid name: ");
                                 playerName = keyboard.nextLine();
                             }
-                            player.addPlayer(con, playerName, email, 0, 0);
+                            player.addPlayer(con, playerName, email);
                             break;
                         case 2:
                             System.out.println("Here are all the players:");
@@ -327,6 +342,7 @@ public class WordleGame {
                     }
                 }
             } else if (choice == 5) {
+                db.closeConnection(con);
                 System.out.println("Goodbye!");
                 break;
             } else {
@@ -348,12 +364,12 @@ public class WordleGame {
         //grid.print(); // Print the updated grid
     }
 
-    public void endGame(int attemptsUsed, long startTime, long endTime, int playerId, int wordId, Connection con, DbFunctions dbFunctions) {
+    public void endGame(int attemptsUsed, long startTime, long endTime, int playerId, int wordId, Connection con, DbFunctions dbFunctions, boolean gameOver) {
         // Calculate time taken
         long timeTakenInSeconds = (endTime - startTime) / 1000;
 
         // Calculate the score
-        int score = calculateScore(attemptsUsed, timeTakenInSeconds);
+        int score = calculateScore(attemptsUsed, timeTakenInSeconds, gameWon);
         System.out.println("Final Score: " + score);
 
         // Save the score to the database
@@ -364,7 +380,10 @@ public class WordleGame {
         dbFunctions.addGamesToDb(con, playerId, wordId, 0);
     }
 
-    private int calculateScore(int attemptsUsed, long timeTakenInSeconds) {
+    private int calculateScore(int attemptsUsed, long timeTakenInSeconds, boolean gameWon) {
+        if (!gameWon) {
+            return 0;
+        }
         final int BASE_SCORE = 1000;
         final int ATTEMPT_PENALTY = 100;
         final int TIME_THRESHOLD = 300; // 5 minutes

@@ -41,7 +41,7 @@ public class Player {
         return false;
     }
 
-    public void addPlayer(Connection con, String playerName, String email, int playCount, int totalWins) {
+    public void addPlayer(Connection con, String playerName, String email) {
         PreparedStatement checkPlayerStmt = null;
         PreparedStatement insertPlayerStmt = null;
         ResultSet resultSet = null;
@@ -59,14 +59,12 @@ public class Player {
                 System.out.println("Player with name '" + playerName.toUpperCase() + "' already exists in the database.");
             } else {
                 // SQL query to insert a new player
-                String insertPlayerSQL = "INSERT INTO players (player_name, email, play_count, total_wins) VALUES (?, ?, ?, ?)";
+                String insertPlayerSQL = "INSERT INTO players (player_name, email) VALUES (?, ?)";
                 insertPlayerStmt = con.prepareStatement(insertPlayerSQL);
 
                 // Set parameters for the INSERT query
                 insertPlayerStmt.setString(1, playerName.toUpperCase());
                 insertPlayerStmt.setString(2, email);
-                insertPlayerStmt.setInt(3, playCount);
-                insertPlayerStmt.setInt(4, totalWins);
 
                 // Execute the insertion
                 int rowsAffected = insertPlayerStmt.executeUpdate();
@@ -107,8 +105,6 @@ public class Player {
                     System.out.println("Player ID: " + resultSet.getInt("player_id"));
                     System.out.println("Player Name: " + resultSet.getString("player_name"));
                     System.out.println("Player Email: " + resultSet.getString("email"));
-                    System.out.println("The Amount of Games Played: " + resultSet.getInt("play_count"));
-                    System.out.println("The Amount of Wins: " + resultSet.getInt("total_wins"));
                 }
             }
         } catch (Exception e) {
